@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="light"] {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #171717;
+  --secondary: #f4f4f5;
+  --accent: #52525b;
+}
+
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #fafafa;
+  --secondary: #27272a;
+  --accent: #a1a1aa;
+}
+
+/* Agora — Solana greens & deep purples (agora-web.fly.dev) */
+[data-theme="agora"] {
+  --background: #120a24;
+  --foreground: #ece6d4;
+  --primary: #14f195;
+  --secondary: #2d1b4e;
+  --accent: #9945ff;
+}
+
+/* Colosseum — arena crimson, sand & gold (colosseum.com) */
+[data-theme="colosseum"] {
+  --background: #141010;
+  --foreground: #ededed;
+  --primary: #9b1c2c;
+  --secondary: #2c2a26;
+  --accent: #f5bc22;
+}
+
+/* Indies — cyberpunk neon pink & dark grays (hack.indies.la) */
+[data-theme="indies"] {
+  --background: #0a0500;
+  --foreground: #f5e6d3;
+  --primary: #ff2d95;
+  --secondary: #1a1210;
+  --accent: #f5a623;
+}
+
+/* Dev3pack — deep ocean blues & bright cyan (hack.dev3pack.xyz) */
+[data-theme="dev3pack"] {
+  --background: #050d18;
+  --foreground: #e8f4ff;
+  --primary: #00d4ff;
+  --secondary: #0f2847;
+  --accent: #38bdf8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
