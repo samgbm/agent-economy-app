@@ -10,6 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@getalby/lightning-tools": "^8.2.0",
+    "@getalby/sdk": "^8.0.3",
     "@supabase/supabase-js": "^2.110.5",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
