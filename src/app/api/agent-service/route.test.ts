@@ -1,7 +1,16 @@
 /** @jest-environment node */
 
 jest.mock("../../../lib/l402", () => ({
-  requireL402: jest.fn().mockResolvedValue(null),
+  requireL402: jest.fn().mockResolvedValue("test-preimage-hex"),
+}));
+
+jest.mock("../../../lib/supabase", () => ({
+  __esModule: true,
+  default: {
+    from: jest.fn().mockReturnValue({
+      insert: jest.fn().mockResolvedValue({ error: null }),
+    }),
+  },
 }));
 
 import { requireL402 } from "../../../lib/l402";
@@ -12,8 +21,9 @@ const mockRequireL402 = requireL402 as jest.Mock;
 describe("POST /api/agent-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRequireL402.mockResolvedValue(null);
+    mockRequireL402.mockResolvedValue("test-preimage-hex");
   });
+
   it("returns 200 with mock premium data for a valid request", async () => {
     const response = await POST(
       new Request("http://localhost/api/agent-service", {

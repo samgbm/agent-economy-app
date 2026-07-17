@@ -15,4 +15,6 @@ if (!supabaseServiceRoleKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+export default supabase;

@@ -19,7 +19,7 @@ export async function requireL402(
   amountInSats: number,
   memo: string,
   request: Request,
-): Promise<NextResponse | null> {
+): Promise<NextResponse | string> {
   const authorization = request.headers.get("Authorization");
 
   if (authorization?.startsWith("L402")) {
@@ -94,7 +94,7 @@ export async function requireL402(
       );
     }
 
-    return null;
+    return preimageHex;
   }
 
   const { paymentRequest, paymentHash } = await generateInvoice(

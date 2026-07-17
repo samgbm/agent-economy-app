@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import supabase from "@/lib/supabase";
 import { requireL402 } from "@/lib/l402";
 
 const agentServiceRequestSchema = z.object({
@@ -7,10 +8,10 @@ const agentServiceRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const l402Response = await requireL402(10, "Agent Service API", request);
+  const l402Result = await requireL402(10, "Agent Service API", request);
 
-  if (l402Response) {
-    return l402Response;
+  if (l402Result instanceof NextResponse) {
+    return l402Result;
   }
 
   let body: unknown;
@@ -31,6 +32,18 @@ export async function POST(request: Request) {
       { error: parsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  const { error } = await supabase.from("transactions").insert({
+    amount_sats: 10,
+    memo: "Agent Service API",
+    preimage: l402Result,
+  });
+
+  if (error) {
+    console.error("Failed to log transaction:", error);
+  } else {
+    console.log(`[Server] Logged 10 sats transaction. Preimage: ${l402Result}`);
   }
 
   return NextResponse.json({
