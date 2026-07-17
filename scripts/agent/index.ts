@@ -19,7 +19,27 @@ async function main() {
     console.log("[Agent] Hit paywall. Extracting invoice...");
 
     const wwwAuthenticate = response.headers.get("WWW-Authenticate");
-    console.log(wwwAuthenticate);
+    // console.log(wwwAuthenticate);
+
+    const l402HeaderPattern =
+      /macaroon="([^"]+)",\s*invoice="([^"]+)"/;
+    const parsedHeader = wwwAuthenticate?.match(l402HeaderPattern);
+
+    if (!parsedHeader) {
+      console.error("[Agent] Failed to parse WWW-Authenticate header.");
+      return;
+    }
+
+    let macaroon = parsedHeader[1];
+    let invoice = parsedHeader[2];
+
+    console.log(
+      "[Agent] Successfully extracted Macaroon:",
+      macaroon.substring(0, 15) + "...",
+    );
+    console.log("[Agent] Successfully extracted Invoice:", invoice);
+
+    // TODO: Pay the invoice and retry the request.
 
     return;
   }
