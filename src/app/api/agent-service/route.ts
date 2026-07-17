@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { requireL402 } from "@/lib/l402";
 
 const agentServiceRequestSchema = z.object({
   query: z.string(),
 });
 
 export async function POST(request: Request) {
+  const l402Response = await requireL402(10, "Agent Service API", request);
+
+  if (l402Response) {
+    return l402Response;
+  }
+
   let body: unknown;
 
   try {
