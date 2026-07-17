@@ -13,7 +13,6 @@ if (!agentNwcUrl) {
 
 /**
  * Autonomous AI Agent script for interacting with the Agent Service API.
- * L402 proof retry logic will be added in a later increment.
  */
 
 async function main() {
@@ -62,7 +61,26 @@ async function main() {
 
     console.log("[Agent] Payment successful! Received Preimage: " + preimage);
 
-    // TODO: Retry the API request with L402 Proof.
+    const authHeader = `L402 ${macaroon}:${preimage}`;
+
+    console.log("[Agent] Retrying API request with L402 Proof...");
+
+    const retryResponse = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify({ query: "analyze market" }),
+    });
+
+    const finalData = await retryResponse.json();
+
+    if (retryResponse.ok) {
+      console.log("[Agent] Success! Data unlocked: ", finalData);
+    } else {
+      console.log("[Agent] Failed to unlock data: ", finalData);
+    }
 
     return;
   }
