@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import supabase from "@/lib/supabase";
 import { requireL402 } from "@/lib/l402";
+import { ratelimit } from "@/lib/ratelimit";
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -17,6 +18,22 @@ const agentServiceRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "anonymous_agent";
+  const rateLimitResult = await ratelimit.limit(ip);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Please slow down." },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+        },
+      },
+    );
+  }
+
   const l402Result = await requireL402(5, "Agent Service API", request);
 
   if (l402Result instanceof NextResponse) {
