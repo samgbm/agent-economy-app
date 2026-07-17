@@ -1,4 +1,5 @@
 import { Bot, Zap } from "lucide-react";
+import { RevenueTracker } from "@/components/RevenueTracker";
 import { TransactionFeed } from "@/components/TransactionFeed";
 
 export default function Home() {
@@ -40,6 +41,7 @@ export default function Home() {
           </div>
         </section>
 
+        <RevenueTracker />
         <TransactionFeed />
       </main>
     </div>

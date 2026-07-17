@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import Home from "./page";
 
+jest.mock("../components/RevenueTracker", () => ({
+  RevenueTracker: () => <div data-testid="revenue-tracker" />,
+}));
+
 jest.mock("../components/TransactionFeed", () => ({
   TransactionFeed: () => <div data-testid="transaction-feed" />,
 }));
@@ -16,6 +20,7 @@ describe("Home page", () => {
         name: /agent economy api dashboard/i,
       }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
     expect(screen.getByTestId("transaction-feed")).toBeInTheDocument();
   });
 });

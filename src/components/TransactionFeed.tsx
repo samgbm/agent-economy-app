@@ -12,6 +12,20 @@ function truncatePreimage(preimage: string, length = 16) {
   return `${preimage.slice(0, length)}...`;
 }
 
+function formatTimestamp(createdAt: string | null | undefined) {
+  if (!createdAt) {
+    return "—";
+  }
+
+  return new Date(createdAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export function TransactionFeed() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [highlightedIds, setHighlightedIds] = useState<Set<string | number>>(
@@ -117,6 +131,9 @@ export function TransactionFeed() {
                     <div>
                       <p className="font-medium text-foreground">
                         {transaction.memo ?? "Agent payment"}
+                      </p>
+                      <p className="mt-1 text-xs text-accent">
+                        {formatTimestamp(transaction.created_at)}
                       </p>
                       <p className="mt-1 font-mono text-xs text-accent">
                         preimage:{" "}
