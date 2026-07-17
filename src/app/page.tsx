@@ -1,64 +1,46 @@
-import Image from "next/image";
+import { Bot, Zap } from "lucide-react";
+import { TransactionFeed } from "@/components/TransactionFeed";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-16 sm:px-8">
+        <section className="relative overflow-hidden rounded-3xl border border-secondary bg-secondary/30 p-8 sm:p-10">
+          <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-10 left-10 h-32 w-32 rounded-full bg-accent/10 blur-3xl" />
+
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-secondary bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-accent">
+                <Zap className="h-3.5 w-3.5 text-primary" />
+                Lightning L402
+              </div>
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                Agent Economy API Dashboard
+              </h1>
+              <p className="mt-4 max-w-xl text-base leading-7 text-accent sm:text-lg">
+                Monitor autonomous agents as they pay sats, unlock premium API
+                endpoints, and stream verified transactions in real time.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-secondary bg-background/80 p-5 backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-secondary p-3 text-primary">
+                  <Bot className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Agent Service API
+                  </p>
+                  <p className="text-xs text-accent">10 sats per request</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <TransactionFeed />
       </main>
     </div>
   );
