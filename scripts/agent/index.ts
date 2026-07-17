@@ -17,7 +17,7 @@ if (!agentNwcUrl) {
 
 async function main() {
   const API_URL = "http://localhost:3000/api/agent-service";
-  const payload = { query: "analyze market" };
+  const payload = { query: "Explain the Lightning Network to a 5 year old in one sentence." };
 
   const response = await fetch(API_URL, {
     method: "POST",
@@ -71,7 +71,7 @@ async function main() {
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({ query: "analyze market" }),
+      body: JSON.stringify(payload),
     });
 
     const finalData = await retryResponse.json();

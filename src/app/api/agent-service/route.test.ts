@@ -13,6 +13,19 @@ jest.mock("../../../lib/supabase", () => ({
   },
 }));
 
+const mockCreate = jest.fn();
+
+jest.mock("openai", () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: (...args: unknown[]) => mockCreate(...args),
+      },
+    },
+  })),
+}));
+
 import { requireL402 } from "../../../lib/l402";
 import { POST } from "./route";
 
@@ -22,9 +35,18 @@ describe("POST /api/agent-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRequireL402.mockResolvedValue("test-preimage-hex");
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: "Markets show strong momentum in Lightning infrastructure.",
+          },
+        },
+      ],
+    });
   });
 
-  it("returns 200 with mock premium data for a valid request", async () => {
+  it("returns 200 with LLM analysis for a valid request", async () => {
     const response = await POST(
       new Request("http://localhost/api/agent-service", {
         method: "POST",
@@ -39,9 +61,24 @@ describe("POST /api/agent-service", () => {
     expect(body).toEqual({
       status: "success",
       data: {
-        analysis: "Market is bullish based on recent node deployments.",
+        analysis: "Markets show strong momentum in Lightning infrastructure.",
         queryProcessed: "analyze market",
       },
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert financial and market analyst agent. Provide concise, actionable insights based on the user's query.",
+        },
+        {
+          role: "user",
+          content: "analyze market",
+        },
+      ],
     });
   });
 
@@ -58,5 +95,6 @@ describe("POST /api/agent-service", () => {
 
     const body = await response.json();
     expect(body.error).toBeDefined();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

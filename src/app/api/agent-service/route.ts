@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 import { z } from "zod";
 import supabase from "@/lib/supabase";
 import { requireL402 } from "@/lib/l402";
+
+const openaiApiKey = process.env.OPENAI_API_KEY;
+
+if (!openaiApiKey) {
+  throw new Error("Missing required environment variable: OPENAI_API_KEY");
+}
+
+const openai = new OpenAI({ apiKey: openaiApiKey });
 
 const agentServiceRequestSchema = z.object({
   query: z.string(),
@@ -35,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await supabase.from("transactions").insert({
-    amount_sats: 10,
+    amount_sats: 5,
     memo: "Agent Service API",
     preimage: l402Result,
   });
@@ -46,10 +55,27 @@ export async function POST(request: Request) {
     console.log(`[Server] Logged 10 sats transaction. Preimage: ${l402Result}`);
   }
 
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an expert financial and market analyst agent. Provide concise, actionable insights based on the user's query.",
+      },
+      {
+        role: "user",
+        content: parsed.data.query,
+      },
+    ],
+  });
+
+  const analysis = completion.choices[0]?.message?.content ?? "";
+
   return NextResponse.json({
     status: "success",
     data: {
-      analysis: "Market is bullish based on recent node deployments.",
+      analysis,
       queryProcessed: parsed.data.query,
     },
   });
