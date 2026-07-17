@@ -1,6 +1,19 @@
+// import "dotenv/config";
+import { NWCClient } from "@getalby/sdk";
+import dotenv from "dotenv";
+// Explicitly tell dotenv where to find your Next.js local env file
+dotenv.config({ path: ".env.local" });
+const agentNwcUrl = process.env.AGENT_NWC_URL;
+
+if (!agentNwcUrl) {
+  throw new Error(
+    "Missing required environment variable: AGENT_NWC_URL. The agent needs a funded NWC wallet connection to pay L402 invoices.",
+  );
+}
+
 /**
  * Autonomous AI Agent script for interacting with the Agent Service API.
- * Payment logic (Alby Lightning Wallet / L402) will be added in a later increment.
+ * L402 proof retry logic will be added in a later increment.
  */
 
 async function main() {
@@ -19,7 +32,6 @@ async function main() {
     console.log("[Agent] Hit paywall. Extracting invoice...");
 
     const wwwAuthenticate = response.headers.get("WWW-Authenticate");
-    // console.log(wwwAuthenticate);
 
     const l402HeaderPattern =
       /macaroon="([^"]+)",\s*invoice="([^"]+)"/;
@@ -39,7 +51,18 @@ async function main() {
     );
     console.log("[Agent] Successfully extracted Invoice:", invoice);
 
-    // TODO: Pay the invoice and retry the request.
+    const agentWallet = new NWCClient({
+      nostrWalletConnectUrl: agentNwcUrl,
+    });
+
+    console.log("[Agent] Wallet connected. Attempting to pay invoice...");
+
+    const paymentResponse = await agentWallet.payInvoice({ invoice });
+    const preimage = paymentResponse.preimage;
+
+    console.log("[Agent] Payment successful! Received Preimage: " + preimage);
+
+    // TODO: Retry the API request with L402 Proof.
 
     return;
   }
