@@ -2,38 +2,307 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Agent Economy API",
-    "version": "1.0.0",
-    "description": "Lightning L402 paywalled AI services and human-in-the-loop bounty marketplace for autonomous agents."
+    "version": "2.0.0",
+    "description": "Multi-sided marketplace API for autonomous AI agents. Agents discover vendor services, pay per-request via Lightning L402 macaroons, and receive proxied responses through a reputation-aware router. Includes a human bounty board for tasks agents cannot complete alone.\n\n## Authentication\n\nL402-protected endpoints return HTTP 402 with a `WWW-Authenticate` header containing a macaroon and BOLT11 invoice. Pay the invoice, then retry with:\n\n`Authorization: L402 <macaroonBase64>:<preimageHex>`\n\n## Base URLs\n\n- Local: `http://localhost:3000`\n- Production: set your deployed Vercel/host URL as the server in Swagger UI",
+    "contact": {
+      "name": "Agent Economy",
+      "url": "https://github.com"
+    },
+    "license": {
+      "name": "MIT"
+    }
   },
   "servers": [
     {
       "url": "http://localhost:3000",
       "description": "Local development"
+    },
+    {
+      "url": "{baseUrl}",
+      "description": "Custom deployment",
+      "variables": {
+        "baseUrl": {
+          "default": "https://your-app.vercel.app",
+          "description": "Your deployed application URL"
+        }
+      }
     }
   ],
   "tags": [
     {
+      "name": "Health",
+      "description": "Operational health and warm-up endpoints"
+    },
+    {
+      "name": "Catalog",
+      "description": "Marketplace service discovery for autonomous agents"
+    },
+    {
+      "name": "Router",
+      "description": "L402-protected marketplace proxy — pay, route to vendor, enforce reputation"
+    },
+    {
       "name": "Agent Service",
-      "description": "L402-protected AI analysis endpoints for autonomous agents"
+      "description": "Direct L402-protected platform AI analysis endpoint"
     },
     {
       "name": "Bounties",
-      "description": "Human task marketplace for agent-delegated work"
+      "description": "Human-in-the-loop task marketplace"
+    },
+    {
+      "name": "Vendor Backends",
+      "description": "Sample third-party vendor APIs proxied by the router (no L402 on vendor side)"
     }
   ],
   "paths": {
-    "/api/agent-service": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Returns service health metadata. Useful for uptime monitoring and server warm-up cron jobs.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Service is healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok",
+                  "timestamp": "2026-07-18T12:00:00.000Z",
+                  "version": "0.1.0"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Discover marketplace services",
+        "description": "Returns active services joined with vendor metadata. Supports faceted filtering by category, maximum price, and minimum vendor reputation. Used by autonomous agents before calling the router.",
+        "operationId": "getCatalog",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "Filter by exact service category.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Data Analysis",
+                "Creative/Art",
+                "Smart Contracts",
+                "Entertainment",
+                "Web Scraping"
+              ]
+            },
+            "example": "Entertainment"
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "description": "Maximum service price in satoshis (inclusive).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 100
+            }
+          },
+          {
+            "name": "minReputation",
+            "in": "query",
+            "required": false,
+            "description": "Minimum vendor reputation score (0–100, inclusive).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catalog fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch catalog services.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/router": {
       "post": {
-        "tags": ["Agent Service"],
-        "summary": "Request AI market analysis",
-        "description": "Premium agent service protected by Lightning L402. Without payment proof, the API returns HTTP 402 with a macaroon and BOLT11 invoice. After paying the invoice, retry with `Authorization: L402 <macaroon>:<preimage>`.",
-        "operationId": "postAgentService",
+        "tags": ["Router"],
+        "summary": "Execute a marketplace service",
+        "description": "Primary marketplace entry point for autonomous agents.\n\n1. Submit `service_id` and vendor `payload`.\n2. Receive HTTP 402 with L402 macaroon and invoice priced at the service's `price_sats`.\n3. Pay the invoice via Lightning.\n4. Retry with `Authorization: L402 <macaroon>:<preimage>`.\n5. On success, the platform takes a **2 sat platform fee**, pays the vendor the remainder via their `lightning_address`, proxies the payload to `endpoint_url`, and returns the vendor response wrapped in `{ status, data }`.\n\nOn vendor failure (timeout or non-2xx), vendor reputation decreases by 5 and stake is slashed by the service price.",
+        "operationId": "postRouter",
+        "security": [{ "L402Auth": [] }],
         "parameters": [
           {
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "description": "L402 payment proof in the format `L402 <macaroonBase64>:<preimageHex>`. Required for successful access after paying the invoice returned in the 402 response.",
+            "description": "L402 payment proof: `L402 <macaroonBase64>:<preimageHex>`. Omit on the first request to receive the 402 challenge.",
+            "schema": {
+              "type": "string",
+              "example": "L402 AgECbWFjYXJvb24...:abcdef0123456789"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouterRequest"
+              },
+              "examples": {
+                "entertainmentJoke": {
+                  "summary": "Entertainment joke service",
+                  "value": {
+                    "service_id": "123e4567-e89b-12d3-a456-426614174000",
+                    "payload": {
+                      "topic": "Bitcoin developers debugging at 3 AM"
+                    }
+                  }
+                },
+                "dataAnalysis": {
+                  "summary": "Data analysis vendor service",
+                  "value": {
+                    "service_id": "123e4567-e89b-12d3-a456-426614174001",
+                    "payload": {
+                      "query": "Summarize BTC sentiment",
+                      "timeframe": "24h"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment verified, vendor paid, and vendor response returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterSuccessResponse"
+                },
+                "examples": {
+                  "jokeVendor": {
+                    "summary": "Entertainment vendor response",
+                    "value": {
+                      "status": "success",
+                      "data": {
+                        "status": "success",
+                        "joke": "Why did the Bitcoin developer refuse to sleep? Because they were waiting for a block confirmation at 3 AM."
+                      }
+                    }
+                  },
+                  "analysisVendor": {
+                    "summary": "Analysis vendor response",
+                    "value": {
+                      "status": "success",
+                      "data": {
+                        "analysis": "Markets show cautious optimism...",
+                        "queryProcessed": "Summarize BTC sentiment"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, malformed Authorization header, or service price does not exceed platform fee.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid macaroon or preimage. Payment not verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required. Response includes `WWW-Authenticate` with macaroon and BOLT11 invoice.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "L402 challenge containing macaroon and invoice.",
+                "schema": {
+                  "type": "string",
+                  "example": "L402 macaroon=\"AgECbWFjYXJvb24...\", invoice=\"lnbc50n1...\""
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Vendor Lightning payout failed or vendor API delivery failed (reputation/stake may be slashed).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-service": {
+      "post": {
+        "tags": ["Agent Service"],
+        "summary": "Request AI market analysis",
+        "description": "Direct platform AI endpoint protected by Lightning L402 (**3 sats** per request). Without payment proof, returns HTTP 402 with macaroon and invoice. After payment, returns OpenAI-generated analysis (or a demo-mode canned response). Successful payments are logged to the `transactions` table. Rate limited to 5 requests per 10 seconds per IP.",
+        "operationId": "postAgentService",
+        "security": [{ "L402Auth": [] }],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "L402 payment proof: `L402 <macaroonBase64>:<preimageHex>`.",
             "schema": {
               "type": "string",
               "example": "L402 AgECbWFjYXJvb24...:abcdef0123456789"
@@ -48,7 +317,7 @@
                 "$ref": "#/components/schemas/AgentServiceRequest"
               },
               "example": {
-                "query": "analyze market"
+                "query": "Explain the Lightning Network to a 5 year old in one sentence."
               }
             }
           }
@@ -64,26 +333,58 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request body or malformed Authorization header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid macaroon or preimage. Payment not verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "402": {
-            "description": "Payment Required. The response includes a `WWW-Authenticate` header containing an L402 macaroon and a Lightning invoice. Pay the invoice, then retry with the macaroon and payment preimage in the Authorization header.",
+            "description": "Payment Required.",
             "headers": {
               "WWW-Authenticate": {
                 "description": "L402 challenge containing macaroon and invoice.",
                 "schema": {
                   "type": "string",
-                  "example": "L402 macaroon=\"AgECbWFjYXJvb24...\", invoice=\"lnbc50n1...\""
+                  "example": "L402 macaroon=\"AgECbWFjYXJvb24...\", invoice=\"lnbc30n1...\""
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid request body or malformed Authorization header."
-          },
-          "401": {
-            "description": "Invalid macaroon or preimage. Payment not verified."
-          },
           "429": {
-            "description": "Rate limit exceeded."
+            "description": "Rate limit exceeded (5 requests / 10 seconds per IP).",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "schema": { "type": "integer", "example": 5 }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": { "type": "integer", "example": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Rate limit exceeded. Please slow down."
+                }
+              }
+            }
           }
         }
       }
@@ -92,7 +393,7 @@
       "post": {
         "tags": ["Bounties"],
         "summary": "Post a bounty for human solvers",
-        "description": "Allows third-party autonomous agents to outsource tasks to the human bounty marketplace.",
+        "description": "Allows autonomous agents to outsource tasks to the human bounty marketplace. Humans solve bounties through the dashboard UI (server action), not via this REST endpoint.",
         "operationId": "postBounty",
         "requestBody": {
           "required": true,
@@ -120,64 +421,254 @@
             }
           },
           "400": {
-            "description": "Invalid request body."
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Failed to persist bounty."
+            "description": "Failed to persist bounty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/bounties/solve": {
+    "/api/vendor-service": {
       "post": {
-        "tags": ["Bounties"],
-        "summary": "Submit a bounty solution",
-        "description": "Human workers submit a solution and Lightning address to claim an open bounty. On success, the platform pays the bounty sats to the provided Lightning address and marks the task as solved.",
-        "operationId": "postBountySolution",
+        "tags": ["Vendor Backends"],
+        "summary": "Sample vendor analysis API",
+        "description": "Example vendor backend proxied by the marketplace router. Accepts a natural language query and returns OpenAI-generated analysis. **Not L402-protected** — payment is enforced by the router before proxying.",
+        "operationId": "postVendorService",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BountySolveRequest"
+                "$ref": "#/components/schemas/VendorServiceRequest"
               },
               "example": {
-                "bountyId": "123e4567-e89b-12d3-a456-426614174000",
-                "solution": "The CAPTCHA text is: 4F92",
-                "lightningAddress": "human@getalby.com"
+                "query": "Explain NWC Wallet Connect to a 5 year old in one sentence."
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Solution accepted and bounty marked as solved.",
+            "description": "Vendor analysis returned.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BountySolveResponse"
+                  "$ref": "#/components/schemas/VendorServiceResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Missing or invalid fields."
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vendors/joke": {
+      "post": {
+        "tags": ["Vendor Backends"],
+        "summary": "Sample Entertainment joke API",
+        "description": "Example Entertainment category vendor. Generates a short stand-up joke about the provided topic. **Not L402-protected** — intended to be registered as a service `endpoint_url` and accessed via the router.",
+        "operationId": "postVendorJoke",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JokeRequest"
+              },
+              "example": {
+                "topic": "Bitcoin developers debugging code at 3 AM"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Joke generated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JokeResponse"
+                }
+              }
+            }
           },
-          "404": {
-            "description": "Bounty not found."
-          },
-          "409": {
-            "description": "Bounty is not open."
-          },
-          "500": {
-            "description": "Payment or database update failed."
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "L402Auth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Lightning L402 credentials. Format: `L402 <macaroonBase64>:<preimageHex>`. Obtain macaroon and invoice from the HTTP 402 `WWW-Authenticate` response, pay the invoice, then retry with the payment preimage."
+      }
+    },
     "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "version": { "type": "string", "example": "0.1.0" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ],
+            "description": "Error message or validation details."
+          }
+        }
+      },
+      "Vendor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "Neural Labs" },
+          "description": { "type": "string" },
+          "reputation_score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 72
+          },
+          "staked_sats": { "type": "integer", "example": 2500 },
+          "lightning_address": {
+            "type": "string",
+            "example": "neurallabs@getalby.com"
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "vendor_id": { "type": "string", "format": "uuid" },
+          "category": {
+            "type": "string",
+            "enum": [
+              "Data Analysis",
+              "Creative/Art",
+              "Smart Contracts",
+              "Entertainment",
+              "Web Scraping"
+            ]
+          },
+          "title": { "type": "string", "example": "Real-time Sentiment Oracle" },
+          "description": { "type": "string" },
+          "price_sats": { "type": "integer", "minimum": 1, "example": 25 },
+          "endpoint_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://api.neurallabs.com/v1/execute"
+          },
+          "payload_format": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Expected JSON payload shape for the vendor API.",
+            "example": { "query": "string", "timeframe": "string" }
+          },
+          "uptime_percentage": {
+            "type": "number",
+            "format": "float",
+            "example": 98.7
+          },
+          "avg_latency_ms": { "type": "integer", "example": 320 },
+          "is_active": { "type": "boolean", "example": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "vendor": { "$ref": "#/components/schemas/Vendor" }
+        }
+      },
+      "CatalogResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "count": { "type": "integer", "example": 12 },
+          "services": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Service" }
+          }
+        }
+      },
+      "RouterRequest": {
+        "type": "object",
+        "required": ["service_id", "payload"],
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the marketplace service from the catalog."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "JSON body forwarded to the vendor's endpoint_url. Shape should match the service's payload_format."
+          }
+        }
+      },
+      "RouterSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Raw JSON response from the vendor API."
+          }
+        }
+      },
+      "RouterErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "error" },
+          "message": {
+            "type": "string",
+            "example": "Vendor failed to deliver. Vendor slashed. Automated refund pending."
+          },
+          "error": { "type": "string" }
+        }
+      },
       "AgentServiceRequest": {
         "type": "object",
         "required": ["query"],
@@ -185,17 +676,14 @@
           "query": {
             "type": "string",
             "description": "Natural language analysis request from the agent.",
-            "example": "Explain the Lightning Network to a 5 year old in one sentence."
+            "example": "Summarize current BTC market sentiment."
           }
         }
       },
       "AgentServiceSuccessResponse": {
         "type": "object",
         "properties": {
-          "status": {
-            "type": "string",
-            "example": "success"
-          },
+          "status": { "type": "string", "example": "success" },
           "data": {
             "type": "object",
             "properties": {
@@ -229,42 +717,42 @@
       "BountyCreateResponse": {
         "type": "object",
         "properties": {
-          "status": {
+          "status": { "type": "string", "example": "success" },
+          "message": { "type": "string", "example": "Bounty posted" }
+        }
+      },
+      "VendorServiceRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
             "type": "string",
-            "example": "success"
-          },
-          "message": {
-            "type": "string",
-            "example": "Bounty posted"
+            "description": "Natural language query forwarded by the router."
           }
         }
       },
-      "BountySolveRequest": {
+      "VendorServiceResponse": {
         "type": "object",
-        "required": ["bountyId", "solution", "lightningAddress"],
         "properties": {
-          "bountyId": {
+          "analysis": { "type": "string" },
+          "queryProcessed": { "type": "string" }
+        }
+      },
+      "JokeRequest": {
+        "type": "object",
+        "required": ["topic"],
+        "properties": {
+          "topic": {
             "type": "string",
-            "description": "Identifier of the open bounty."
-          },
-          "solution": {
-            "type": "string",
-            "description": "Human worker's submitted solution."
-          },
-          "lightningAddress": {
-            "type": "string",
-            "description": "Lightning address where bounty sats should be paid.",
-            "example": "human@getalby.com"
+            "description": "Topic for the generated stand-up joke."
           }
         }
       },
-      "BountySolveResponse": {
+      "JokeResponse": {
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          }
+          "status": { "type": "string", "example": "success" },
+          "joke": { "type": "string" }
         }
       }
     }

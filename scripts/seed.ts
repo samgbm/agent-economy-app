@@ -22,6 +22,74 @@ if (!supabaseServiceRoleKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+const vendorPrefixes = [
+  "Neural",
+  "Quantum",
+  "Nexus",
+  "Apex",
+  "Cyber",
+  "Synth",
+  "Aura",
+];
+
+const vendorSuffixes = [
+  "Labs",
+  "AI",
+  "Systems",
+  "Networks",
+  "Dynamics",
+  "Compute",
+];
+
+const categories = [
+  "Data Analysis",
+  "Creative/Art",
+  "Smart Contracts",
+  "Entertainment",
+  "Web Scraping",
+];
+
+const serviceTitlesByCategory: Record<string, string[]> = {
+  "Data Analysis": [
+    "Real-time Sentiment Oracle",
+    "Macro Trend Forecaster",
+    "Anomaly Detection Stream",
+    "Market Signal Aggregator",
+  ],
+  "Creative/Art": [
+    "Meme Generator API",
+    "Brand Voice Synthesizer",
+    "Visual Prompt Studio",
+    "Storyboard Composer",
+  ],
+  "Smart Contracts": [
+    "Solidity Auditing Agent",
+    "Reentrancy Scanner Pro",
+    "Vault Risk Monitor",
+    "Bytecode Explainer API",
+  ],
+  Entertainment: [
+    "Stand-up Joke Generator",
+    "Late Night Monologue API",
+    "Punchline Optimizer",
+    "Comedy Roast Engine",
+  ],
+  "Web Scraping": [
+    "Headless Browser Scraper",
+    "Anti-bot Bypass Crawler",
+    "Structured Data Extractor",
+    "Dynamic DOM Watcher",
+  ],
+};
+
+const payloadFormatsByCategory: Record<string, object> = {
+  "Data Analysis": { query: "string", timeframe: "string" },
+  "Creative/Art": { prompt: "string", style: "string" },
+  "Smart Contracts": { contract_address: "string", chain: "string" },
+  Entertainment: { topic: "string" },
+  "Web Scraping": { url: "string", selector: "string" },
+};
+
 const transactionMemos = [
   "Market Analysis API",
   "Python Code Execution",
@@ -51,66 +119,6 @@ const solvedBounties = [
     solution: "Deliver to 221B Baker Street, London",
     bounty_sats: 90,
   },
-  {
-    task_description: "Verify whether this receipt total matches the line items.",
-    solution: "Total is correct at 42.17 USD after tax",
-    bounty_sats: 65,
-  },
-  {
-    task_description: "Label the sentiment of these 20 customer support tickets.",
-    solution: "12 negative, 5 neutral, 3 positive",
-    bounty_sats: 150,
-  },
-  {
-    task_description: "Confirm the CAPTCHA phrase on the login portal.",
-    solution: "The CAPTCHA text is: BLUE7",
-    bounty_sats: 55,
-  },
-  {
-    task_description: "Mark all vehicles in the aerial image dataset.",
-    solution: "Detected 14 cars and 2 delivery vans",
-    bounty_sats: 180,
-  },
-  {
-    task_description: "Extract the 2FA backup code from the scanned document.",
-    solution: "Backup code ends with 8831",
-    bounty_sats: 200,
-  },
-  {
-    task_description: "Determine if this product photo violates marketplace policy.",
-    solution: "No policy violation detected",
-    bounty_sats: 110,
-  },
-  {
-    task_description: "Complete the visual puzzle to access the research archive.",
-    solution: "Puzzle solved: rotate tiles 2 and 5",
-    bounty_sats: 95,
-  },
-  {
-    task_description: "Classify the noise level in this audio clip.",
-    solution: "Moderate office background noise",
-    bounty_sats: 70,
-  },
-  {
-    task_description: "Identify the language used in the scanned contract page.",
-    solution: "Document is written in Portuguese",
-    bounty_sats: 85,
-  },
-  {
-    task_description: "Confirm whether the warehouse image contains safety hazards.",
-    solution: "One unmarked wet floor area near aisle 4",
-    bounty_sats: 130,
-  },
-  {
-    task_description: "Decode the CAPTCHA blocking the API signup flow.",
-    solution: "The CAPTCHA text is: K9M3P",
-    bounty_sats: 60,
-  },
-  {
-    task_description: "Tag all pedestrians in the intersection camera frame.",
-    solution: "Image contains a crosswalk with 3 pedestrians",
-    bounty_sats: 160,
-  },
 ];
 
 const openBounties = [
@@ -119,40 +127,8 @@ const openBounties = [
     bounty_sats: 175,
   },
   {
-    task_description: "Categorize this image dataset",
+    task_description: "Categorize this image dataset for agent training",
     bounty_sats: 140,
-  },
-  {
-    task_description: "Validate the KYC document authenticity",
-    bounty_sats: 125,
-  },
-  {
-    task_description: "Summarize this 40-page legal PDF for an agent workflow",
-    bounty_sats: 190,
-  },
-  {
-    task_description: "Solve the CAPTCHA on the legacy vendor portal",
-    bounty_sats: 80,
-  },
-  {
-    task_description: "Manually verify the warehouse inventory count sheet",
-    bounty_sats: 100,
-  },
-  {
-    task_description: "Audit this Solidity vault for flash loan attack vectors",
-    bounty_sats: 200,
-  },
-  {
-    task_description: "Label emotions in this customer interview transcript",
-    bounty_sats: 115,
-  },
-  {
-    task_description: "Confirm the map coordinates for this delivery exception",
-    bounty_sats: 95,
-  },
-  {
-    task_description: "Review the privacy policy changes for compliance risk",
-    bounty_sats: 155,
   },
 ];
 
@@ -160,16 +136,102 @@ function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function randomFloat(min: number, max: number, decimals = 1) {
+  const value = Math.random() * (max - min) + min;
+  return Number(value.toFixed(decimals));
+}
+
+function pickRandom<T>(items: T[]) {
+  return items[randomInt(0, items.length - 1)];
+}
+
 function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
 
+function slugifyVendorName(name: string) {
+  return name.toLowerCase().replace(/\s+/g, "");
+}
+
+async function clearTable(table: "services" | "vendors" | "bounties" | "transactions") {
+  const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  if (error) {
+    throw new Error(`Failed to clear ${table}: ${error.message}`);
+  }
+
+  console.log(`[Seed] Cleared ${table}.`);
+}
+
+function buildVendorRecords() {
+  const usedNames = new Set<string>();
+
+  return Array.from({ length: 15 }, (_, index) => {
+    let name = "";
+
+    do {
+      name = `${pickRandom(vendorPrefixes)} ${pickRandom(vendorSuffixes)}`;
+    } while (usedNames.has(name));
+
+    usedNames.add(name);
+
+    const reputationScore =
+      index < 4 ? randomInt(40, 55) : randomInt(40, 100);
+
+    const slug = slugifyVendorName(name);
+
+    return {
+      name,
+      description: `${name} builds autonomous AI services for the agent economy marketplace.`,
+      reputation_score: reputationScore,
+      staked_sats: randomInt(100, 5000),
+      lightning_address: `${slug}@getalby.com`,
+    };
+  });
+}
+
+function buildServicesForVendor(
+  vendor: { id: string; name: string },
+  serviceCount: number,
+) {
+  const slug = slugifyVendorName(vendor.name);
+  const services = [];
+  const usedTitles = new Set<string>();
+
+  for (let index = 0; index < serviceCount; index += 1) {
+    const category = pickRandom(categories);
+    const titleOptions = serviceTitlesByCategory[category];
+    let title = pickRandom(titleOptions);
+
+    while (usedTitles.has(title)) {
+      title = pickRandom(titleOptions);
+    }
+
+    usedTitles.add(title);
+
+    services.push({
+      vendor_id: vendor.id,
+      category,
+      title,
+      description: `${title} offered by ${vendor.name} for autonomous agent workflows.`,
+      price_sats: randomInt(5, 200),
+      endpoint_url: `https://api.${slug}.com/v1/execute`,
+      payload_format: payloadFormatsByCategory[category],
+      uptime_percentage: randomFloat(95.0, 99.9),
+      avg_latency_ms: randomInt(50, 800),
+      is_active: true,
+    });
+  }
+
+  return services;
+}
+
 function buildTransactions() {
-  return Array.from({ length: 22 }, (_, index) => ({
+  return Array.from({ length: 10 }, (_, index) => ({
     amount_sats: randomInt(5, 50),
     memo: transactionMemos[index % transactionMemos.length],
     preimage: randomBytes(32).toString("hex"),
-    created_at: hoursAgo(24 - index * (24 / 22)),
+    created_at: hoursAgo(24 - index * 2.4),
   }));
 }
 
@@ -179,44 +241,80 @@ function buildBounties() {
     bounty_sats: bounty.bounty_sats,
     status: "solved",
     solution: bounty.solution,
-    created_at: hoursAgo(72 - index * 3),
+    created_at: hoursAgo(72 - index * 4),
   }));
 
   const open = openBounties.map((bounty, index) => ({
     task_description: bounty.task_description,
     bounty_sats: bounty.bounty_sats,
     status: "open",
-    created_at: hoursAgo(12 - index * 0.8),
+    created_at: hoursAgo(12 - index * 2),
   }));
 
   return [...solved, ...open];
 }
 
 async function seed() {
-  console.log("[Seed] Starting dashboard seed...");
+  console.log("[Seed] Starting marketplace seed...");
 
+  console.log("[Seed] Clearing existing marketplace data...");
+  await clearTable("services");
+  await clearTable("vendors");
+  await clearTable("bounties");
+  await clearTable("transactions");
+
+  console.log("[Seed] Creating vendors...");
+  const vendorRecords = buildVendorRecords();
+
+  const { data: insertedVendors, error: vendorError } = await supabase
+    .from("vendors")
+    .insert(vendorRecords)
+    .select("id, name");
+
+  if (vendorError || !insertedVendors) {
+    throw new Error(`Failed to insert vendors: ${vendorError?.message}`);
+  }
+
+  console.log(`[Seed] Inserted ${insertedVendors.length} vendors.`);
+
+  console.log("[Seed] Creating services...");
+  const allServices = insertedVendors.flatMap((vendor) =>
+    buildServicesForVendor(vendor, randomInt(2, 4)),
+  );
+
+  const { error: serviceError } = await supabase.from("services").insert(allServices);
+
+  if (serviceError) {
+    throw new Error(`Failed to insert services: ${serviceError.message}`);
+  }
+
+  console.log(`[Seed] Inserted ${allServices.length} services.`);
+
+  console.log("[Seed] Creating transactions...");
   const transactions = buildTransactions();
-  const bounties = buildBounties();
-
   const { error: transactionError } = await supabase
     .from("transactions")
     .insert(transactions);
 
   if (transactionError) {
-    console.error("[Seed] Failed to insert transactions:", transactionError);
-  } else {
-    console.log(`[Seed] Inserted ${transactions.length} transactions.`);
+    throw new Error(`Failed to insert transactions: ${transactionError.message}`);
   }
 
+  console.log(`[Seed] Inserted ${transactions.length} transactions.`);
+
+  console.log("[Seed] Creating bounties...");
+  const bounties = buildBounties();
   const { error: bountyError } = await supabase.from("bounties").insert(bounties);
 
   if (bountyError) {
-    console.error("[Seed] Failed to insert bounties:", bountyError);
-  } else {
-    console.log(`[Seed] Inserted ${bounties.length} bounties.`);
+    throw new Error(`Failed to insert bounties: ${bountyError.message}`);
   }
 
-  console.log("[Seed] Done.");
+  console.log(`[Seed] Inserted ${bounties.length} bounties.`);
+  console.log("[Seed] Marketplace seed complete.");
 }
 
-seed().catch(console.error);
+seed().catch((error) => {
+  console.error("[Seed] Failed:", error);
+  process.exit(1);
+});
