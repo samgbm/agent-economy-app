@@ -4,10 +4,12 @@ import { Bot, Zap } from "lucide-react";
 import { useState } from "react";
 import { BountyBoard } from "@/components/BountyBoard";
 import { DemoToggle } from "@/components/DemoToggle";
+import { MarketplaceGrid } from "@/components/MarketplaceGrid";
 import { RevenueTracker } from "@/components/RevenueTracker";
 import { SidebarFilter } from "@/components/SidebarFilter";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { TransactionFeed } from "@/components/TransactionFeed";
+import type { MarketplaceFilters } from "@/types/database";
 
 const tabs = [
   { id: "home", label: "Home" },
@@ -19,6 +21,9 @@ type TabId = (typeof tabs)[number]["id"];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
+  const [marketFilters, setMarketFilters] = useState<Partial<MarketplaceFilters>>(
+    {},
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -92,15 +97,11 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
               <div className="md:col-span-1">
-                <SidebarFilter />
+                <SidebarFilter onFilterChange={setMarketFilters} />
               </div>
 
               <div className="md:col-span-3">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <div className="col-span-full rounded-2xl border border-border bg-secondary/30 px-6 py-16 text-center text-sm text-accent">
-                    Marketplace Services Loading...
-                  </div>
-                </div>
+                <MarketplaceGrid filters={marketFilters} />
               </div>
             </div>
           </div>

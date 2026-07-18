@@ -9,6 +9,10 @@ jest.mock("../components/ThemeSwitcher", () => ({
   ThemeSwitcher: () => <div data-testid="theme-switcher" />,
 }));
 
+jest.mock("../components/MarketplaceGrid", () => ({
+  MarketplaceGrid: () => <div data-testid="marketplace-grid" />,
+}));
+
 jest.mock("../components/SidebarFilter", () => ({
   SidebarFilter: () => <div data-testid="sidebar-filter" />,
 }));
@@ -36,9 +40,7 @@ describe("Home page", () => {
         name: /agent economy api dashboard/i,
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/marketplace services loading/i),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("marketplace-grid")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-filter")).toBeInTheDocument();
     expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
     expect(screen.getByTestId("demo-toggle")).toBeInTheDocument();
