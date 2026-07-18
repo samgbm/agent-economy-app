@@ -5,11 +5,15 @@ import {
   ArrowRight,
   Briefcase,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Coins,
   ListChecks,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import supabase from "@/lib/supabaseClient";
+
+const PAGE_SIZE = 6;
 
 function upsertBounty(bounties: any[], bounty: any) {
   const withoutBounty = bounties.filter((item) => item.id !== bounty.id);
@@ -21,6 +25,7 @@ function upsertBounty(bounties: any[], bounty: any) {
 
 export function BountyBoard() {
   const [bounties, setBounties] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const openCount = bounties.filter((bounty) => bounty.status === "open").length;
   const solvedCount = bounties.filter(
@@ -56,6 +61,7 @@ export function BountyBoard() {
         { event: "INSERT", schema: "public", table: "bounties" },
         (payload) => {
           setBounties((prev) => upsertBounty(prev, payload.new));
+          setCurrentPage(1);
         },
       )
       .on(
@@ -71,6 +77,19 @@ export function BountyBoard() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil(bounties.length / PAGE_SIZE));
+
+  const paginatedBounties = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return bounties.slice(start, start + PAGE_SIZE);
+  }, [bounties, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <section className="w-full rounded-3xl border border-primary bg-background/60 p-6 shadow-sm sm:p-8">
@@ -130,8 +149,9 @@ export function BountyBoard() {
           </p>
         </div>
       ) : (
-        <ul className="grid gap-4">
-          {bounties.map((bounty) => {
+        <>
+          <ul className="grid gap-4">
+          {paginatedBounties.map((bounty) => {
             const isSolved = bounty.status === "solved";
 
             return (
@@ -205,6 +225,37 @@ export function BountyBoard() {
             );
           })}
         </ul>
+
+        {totalPages > 1 ? (
+          <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-secondary bg-secondary/20 px-4 py-3">
+            <p className="text-sm text-accent">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 rounded-xl border border-secondary bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 rounded-xl border border-secondary bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+        </>
       )}
     </section>
   );
