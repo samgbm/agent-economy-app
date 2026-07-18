@@ -108,7 +108,7 @@ export async function POST(request: Request) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
 
     const vendorReq = await fetch(service.endpoint_url, {
       method: "POST",
