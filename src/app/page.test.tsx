@@ -1,6 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import Home from "./page";
 
+jest.mock("../components/DemoToggle", () => ({
+  DemoToggle: () => <div data-testid="demo-toggle" />,
+}));
+
+jest.mock("../components/ThemeSwitcher", () => ({
+  ThemeSwitcher: () => <div data-testid="theme-switcher" />,
+}));
+
 jest.mock("../components/RevenueTracker", () => ({
   RevenueTracker: () => <div data-testid="revenue-tracker" />,
 }));
@@ -31,6 +39,8 @@ describe("Home page", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-toggle")).toBeInTheDocument();
+    expect(screen.getByTestId("theme-switcher")).toBeInTheDocument();
     expect(screen.queryByTestId("transaction-feed")).not.toBeInTheDocument();
     expect(screen.queryByTestId("bounty-board")).not.toBeInTheDocument();
   });

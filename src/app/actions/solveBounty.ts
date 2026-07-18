@@ -31,16 +31,26 @@ export async function solveBounty(formData: FormData) {
     throw new Error("Bounty is not open");
   }
 
-  const ln = new LightningAddress(lightningAddress);
-  await ln.fetch();
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("demo_mode")
+    .eq("id", 1)
+    .single();
 
-  const invoice = await ln.requestInvoice({ satoshi: bounty.bounty_sats });
+  if (settings?.demo_mode === true) {
+    console.log("[Demo Mode] Bypassed real Lightning payout to save funds.");
+  } else {
+    const ln = new LightningAddress(lightningAddress);
+    await ln.fetch();
 
-  const nwc = new NWCClient({
-    nostrWalletConnectUrl: process.env.NWC_URL!,
-  });
+    const invoice = await ln.requestInvoice({ satoshi: bounty.bounty_sats });
 
-  await nwc.payInvoice({ invoice: invoice.paymentRequest });
+    const nwc = new NWCClient({
+      nostrWalletConnectUrl: process.env.NWC_URL!,
+    });
+
+    await nwc.payInvoice({ invoice: invoice.paymentRequest });
+  }
 
   const { error: updateError } = await supabase
     .from("bounties")

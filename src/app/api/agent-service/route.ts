@@ -72,22 +72,35 @@ export async function POST(request: Request) {
     console.log(`[Server] Logged 10 sats transaction. Preimage: ${l402Result}`);
   }
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert financial and market analyst agent. Provide concise, actionable insights based on the user's query.",
-      },
-      {
-        role: "user",
-        content: parsed.data.query,
-      },
-    ],
-  });
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("demo_mode")
+    .eq("id", 1)
+    .single();
 
-  const analysis = completion.choices[0]?.message?.content ?? "";
+  let analysis: string;
+
+  if (settings?.demo_mode === true) {
+    analysis =
+      "[DEMO MODE INSTANT RESPONSE]: The market is highly bullish. Lightning network capacity has increased by 15%.";
+  } else {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert financial and market analyst agent. Provide concise, actionable insights based on the user's query.",
+        },
+        {
+          role: "user",
+          content: parsed.data.query,
+        },
+      ],
+    });
+
+    analysis = completion.choices[0]?.message?.content ?? "";
+  }
 
   return NextResponse.json({
     status: "success",

@@ -3,7 +3,9 @@
 import { Bot, Zap } from "lucide-react";
 import { useState } from "react";
 import { BountyBoard } from "@/components/BountyBoard";
+import { DemoToggle } from "@/components/DemoToggle";
 import { RevenueTracker } from "@/components/RevenueTracker";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { TransactionFeed } from "@/components/TransactionFeed";
 
 const tabs = [
@@ -55,25 +57,32 @@ export default function Home() {
           </div>
         </section>
 
-        <nav className="flex flex-wrap gap-2 rounded-2xl border border-secondary bg-secondary/30 p-2">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
+        <nav className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-secondary bg-secondary/30 p-2">
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-primary text-background shadow-sm"
-                    : "text-accent hover:bg-background/70 hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? "bg-primary text-background shadow-sm"
+                      : "text-accent hover:bg-background/70 hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <DemoToggle />
+            <ThemeSwitcher />
+          </div>
         </nav>
 
         {activeTab === "home" ? (

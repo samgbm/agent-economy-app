@@ -15,8 +15,22 @@ jest.mock("../../../lib/l402", () => ({
 jest.mock("../../../lib/supabase", () => ({
   __esModule: true,
   default: {
-    from: jest.fn().mockReturnValue({
-      insert: jest.fn().mockResolvedValue({ error: null }),
+    from: jest.fn((table: string) => {
+      if (table === "app_settings") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { demo_mode: false },
+              }),
+            }),
+          }),
+        };
+      }
+
+      return {
+        insert: jest.fn().mockResolvedValue({ error: null }),
+      };
     }),
   },
 }));
@@ -34,10 +48,12 @@ jest.mock("openai", () => ({
   })),
 }));
 
+import supabase from "../../../lib/supabase";
 import { requireL402 } from "../../../lib/l402";
 import { POST } from "./route";
 
 const mockRequireL402 = requireL402 as jest.Mock;
+const mockFrom = supabase.from as jest.Mock;
 
 describe("POST /api/agent-service", () => {
   beforeEach(() => {
@@ -125,6 +141,47 @@ describe("POST /api/agent-service", () => {
     });
     expect(mockRateLimit).toHaveBeenCalledWith("203.0.113.10");
     expect(mockRequireL402).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("returns a mocked analysis when demo mode is enabled", async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "app_settings") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { demo_mode: true },
+              }),
+            }),
+          }),
+        };
+      }
+
+      return {
+        insert: jest.fn().mockResolvedValue({ error: null }),
+      };
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/agent-service", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "analyze market" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toEqual({
+      status: "success",
+      data: {
+        analysis:
+          "[DEMO MODE INSTANT RESPONSE]: The market is highly bullish. Lightning network capacity has increased by 15%.",
+        queryProcessed: "analyze market",
+      },
+    });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
