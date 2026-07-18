@@ -2,15 +2,21 @@
 
 import { Filter, Search, Star, Zap } from "lucide-react";
 import { useState } from "react";
+import type { MarketplaceFilters } from "@/types/database";
 
 const categories = [
   "Data Analysis",
   "Creative/Art",
   "Smart Contracts",
   "Entertainment",
+  "Web Scraping",
 ];
 
-export function SidebarFilter() {
+interface SidebarFilterProps {
+  onFilterChange?: (filters: any) => void;
+}
+
+export function SidebarFilter({ onFilterChange }: SidebarFilterProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [minSats, setMinSats] = useState("5");
   const [maxSats, setMaxSats] = useState("500");
@@ -25,12 +31,14 @@ export function SidebarFilter() {
   }
 
   function handleApplyFilters() {
-    console.log("[SidebarFilter] Applied filters:", {
+    const filters: MarketplaceFilters = {
       categories: selectedCategories,
       minSats: Number(minSats),
       maxSats: Number(maxSats),
       minReputation: Number(minReputation),
-    });
+    };
+
+    onFilterChange?.(filters);
   }
 
   return (
