@@ -2,7 +2,7 @@ const BOUNTY_API_URL = "http://localhost:3000/api/bounties";
 
 async function main() {
   console.log(
-    "[Bounty Agent] Encountered a CAPTCHA. Outsourcing to human marketplace...",
+    "[Bounty Agent] Encountered a Image Sentiment Analysis. Outsourcing to human marketplace...",
   );
 
   const response = await fetch(BOUNTY_API_URL, {
@@ -11,7 +11,7 @@ async function main() {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      task_description: "Solve this CAPTCHA to unlock the target website.",
+      task_description: "Analyze the sentiment of the image and return the result.",
       bounty_sats: 3,
     }),
   });

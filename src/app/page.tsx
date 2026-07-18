@@ -1,9 +1,22 @@
+"use client";
+
 import { Bot, Zap } from "lucide-react";
+import { useState } from "react";
 import { BountyBoard } from "@/components/BountyBoard";
 import { RevenueTracker } from "@/components/RevenueTracker";
 import { TransactionFeed } from "@/components/TransactionFeed";
 
+const tabs = [
+  { id: "home", label: "Home" },
+  { id: "transactions", label: "Live Transactions" },
+  { id: "bounties", label: "Bounty Board" },
+] as const;
+
+type TabId = (typeof tabs)[number]["id"];
+
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabId>("home");
+
   return (
     <div className="flex flex-1 flex-col">
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-16 sm:px-8">
@@ -42,12 +55,51 @@ export default function Home() {
           </div>
         </section>
 
-        <RevenueTracker />
+        <nav className="flex flex-wrap gap-2 rounded-2xl border border-secondary bg-secondary/30 p-2">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
 
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
-          <TransactionFeed />
-          <BountyBoard />
-        </div>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-primary text-background shadow-sm"
+                    : "text-accent hover:bg-background/70 hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {activeTab === "home" ? (
+          <div className="flex flex-col gap-8">
+            <section className="rounded-2xl border border-secondary bg-secondary/20 p-6 sm:p-8">
+              <h2 className="text-2xl font-semibold text-foreground">
+                Welcome to the Agent Economy
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-accent sm:text-base">
+                This dashboard tracks Lightning micropayments from autonomous
+                agents, live API revenue, and human-in-the-loop bounty tasks.
+                Use the tabs above to explore transactions or solve open bounties.
+              </p>
+            </section>
+            <RevenueTracker />
+          </div>
+        ) : null}
+
+        {activeTab === "transactions" ? (
+          <div className="flex flex-col gap-8">
+            <RevenueTracker />
+            <TransactionFeed />
+          </div>
+        ) : null}
+
+        {activeTab === "bounties" ? <BountyBoard /> : null}
       </main>
     </div>
   );

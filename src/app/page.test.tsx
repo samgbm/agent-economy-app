@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import Home from "./page";
 
 jest.mock("../components/RevenueTracker", () => ({
@@ -14,7 +14,7 @@ jest.mock("../components/TransactionFeed", () => ({
 }));
 
 describe("Home page", () => {
-  it("renders the dashboard hero and transaction feed", () => {
+  it("renders the dashboard hero and home overview by default", () => {
     render(<Home />);
 
     expect(screen.getByRole("main")).toBeInTheDocument();
@@ -24,8 +24,33 @@ describe("Home page", () => {
         name: /agent economy api dashboard/i,
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: /welcome to the agent economy/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
+    expect(screen.queryByTestId("transaction-feed")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("bounty-board")).not.toBeInTheDocument();
+  });
+
+  it("shows live transactions when the transactions tab is selected", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: /live transactions/i }));
+
     expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
     expect(screen.getByTestId("transaction-feed")).toBeInTheDocument();
+    expect(screen.queryByTestId("bounty-board")).not.toBeInTheDocument();
+  });
+
+  it("shows the bounty board when the bounties tab is selected", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: /bounty board/i }));
+
     expect(screen.getByTestId("bounty-board")).toBeInTheDocument();
+    expect(screen.queryByTestId("transaction-feed")).not.toBeInTheDocument();
   });
 });
