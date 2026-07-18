@@ -5,6 +5,10 @@ jest.mock("../components/RevenueTracker", () => ({
   RevenueTracker: () => <div data-testid="revenue-tracker" />,
 }));
 
+jest.mock("../components/BountyBoard", () => ({
+  BountyBoard: () => <div data-testid="bounty-board" />,
+}));
+
 jest.mock("../components/TransactionFeed", () => ({
   TransactionFeed: () => <div data-testid="transaction-feed" />,
 }));
@@ -22,5 +26,6 @@ describe("Home page", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
     expect(screen.getByTestId("transaction-feed")).toBeInTheDocument();
+    expect(screen.getByTestId("bounty-board")).toBeInTheDocument();
   });
 });

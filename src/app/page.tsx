@@ -1,4 +1,5 @@
 import { Bot, Zap } from "lucide-react";
+import { BountyBoard } from "@/components/BountyBoard";
 import { RevenueTracker } from "@/components/RevenueTracker";
 import { TransactionFeed } from "@/components/TransactionFeed";
 
@@ -42,7 +43,11 @@ export default function Home() {
         </section>
 
         <RevenueTracker />
-        <TransactionFeed />
+
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+          <TransactionFeed />
+          <BountyBoard />
+        </div>
       </main>
     </div>
   );
