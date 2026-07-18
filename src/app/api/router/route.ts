@@ -11,7 +11,6 @@ export async function POST(request: Request) {
 
   try {
     body = await request.json();
-    console.log(body);
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body" },
@@ -48,8 +47,6 @@ export async function POST(request: Request) {
     .select("*, vendor:vendors(*)")
     .eq("id", service_id)
     .single();
-
-  console.log(service);
 
   if (serviceError || !service) {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
@@ -109,39 +106,61 @@ export async function POST(request: Request) {
     );
   }
 
-  let vendorResponse: unknown;
-
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const vendorReq = await fetch(service.endpoint_url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30_000),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!vendorReq.ok) {
-      return NextResponse.json(
-        {
-          error: "Vendor API returned an error",
-          status: vendorReq.status,
-        },
-        { status: 502 },
-      );
+      throw new Error("Vendor API returned an error status");
     }
 
-    vendorResponse = await vendorReq.json();
+    const vendorResponse = await vendorReq.json();
+
+    await supabase
+      .from("vendors")
+      .update({
+        reputation_score: Math.min(vendor.reputation_score + 1, 100),
+      })
+      .eq("id", vendor.id);
+
+    return NextResponse.json({
+      status: "success",
+      data: vendorResponse,
+    });
   } catch (error) {
-    console.error("[Router] Vendor API request failed:", error);
+    const newReputation = Math.max(vendor.reputation_score - 5, 0);
+    const newStake = Math.max(vendor.staked_sats - service.price_sats, 0);
+
+    await supabase
+      .from("vendors")
+      .update({
+        reputation_score: newReputation,
+        staked_sats: newStake,
+      })
+      .eq("id", vendor.id);
+
+    console.log(
+      `[Router] Vendor failed to deliver. Slashed stake by ${service.price_sats} sats. Reputation dropped to ${newReputation}`,
+    );
+
     return NextResponse.json(
-      { error: "Vendor API request failed or timed out" },
-      { status: 504 },
+      {
+        status: "error",
+        message:
+          "Vendor failed to deliver. Vendor slashed. Automated refund pending.",
+      },
+      { status: 502 },
     );
   }
-
-  return NextResponse.json({
-    status: "success",
-    data: vendorResponse,
-  });
 }

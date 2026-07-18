@@ -9,6 +9,8 @@ const mockService = {
     id: "vendor-1",
     name: "Alpha Node",
     lightning_address: "vendor@getalby.com",
+    reputation_score: 50,
+    staked_sats: 100,
   },
 };
 
@@ -19,6 +21,10 @@ const mockRequestInvoice = jest.fn().mockResolvedValue({
   paymentRequest: "lnbc1mockinvoice",
 });
 const mockLnFetch = jest.fn().mockResolvedValue(undefined);
+const mockVendorUpdate = jest.fn().mockResolvedValue({ error: null });
+const mockUpdate = jest.fn().mockReturnValue({
+  eq: mockVendorUpdate,
+});
 
 jest.mock("../../../lib/l402", () => ({
   requireL402: (...args: unknown[]) => mockRequireL402(...args),
@@ -40,16 +46,24 @@ jest.mock("@getalby/sdk", () => ({
 jest.mock("../../../lib/supabase", () => ({
   __esModule: true,
   default: {
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: mockService,
-            error: null,
+    from: jest.fn((table: string) => {
+      if (table === "vendors") {
+        return {
+          update: mockUpdate,
+        };
+      }
+
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockService,
+              error: null,
+            }),
           }),
         }),
-      }),
-    })),
+      };
+    }),
   },
 }));
 
@@ -63,6 +77,7 @@ describe("POST /api/router", () => {
     jest.clearAllMocks();
     mockRequireL402.mockResolvedValue("test-preimage-hex");
     mockPayInvoice.mockResolvedValue({ preimage: "vendor-preimage" });
+    mockVendorUpdate.mockResolvedValue({ error: null });
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ result: "vendor-success" }),
@@ -88,7 +103,7 @@ describe("POST /api/router", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("returns vendor data after payment, payout, and proxying", async () => {
+  it("returns vendor data and increases reputation after successful delivery", async () => {
     const response = await POST(
       new Request("http://localhost/api/router", {
         method: "POST",
@@ -111,36 +126,68 @@ describe("POST /api/router", () => {
       data: { result: "vendor-success" },
     });
 
-    expect(mockRequireL402).toHaveBeenCalledWith(
-      10,
-      "Marketplace: Market Scanner",
-      expect.any(Request),
-    );
-    expect(mockRequestInvoice).toHaveBeenCalledWith({ satoshi: 8 });
-    expect(mockPayInvoice).toHaveBeenCalledWith({
-      invoice: "lnbc1mockinvoice",
+    expect(mockVendorUpdate).toHaveBeenCalledWith("id", "vendor-1");
+    expect(mockUpdate).toHaveBeenCalledWith({
+      reputation_score: 51,
     });
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://vendor.local/api/analyze",
-      expect.objectContaining({
+  });
+
+  it("slashes vendor stake and reputation when delivery fails", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "vendor down" }),
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/router", {
         method: "POST",
-        body: JSON.stringify({ query: "analyze" }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "L402 macaroon:test:preimage",
+        },
+        body: JSON.stringify({
+          service_id: "service-1",
+          payload: { query: "analyze" },
+        }),
       }),
     );
+
+    expect(response.status).toBe(502);
+
+    const body = await response.json();
+    expect(body).toEqual({
+      status: "error",
+      message:
+        "Vendor failed to deliver. Vendor slashed. Automated refund pending.",
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      reputation_score: 45,
+      staked_sats: 90,
+    });
   });
 
   it("returns 404 when the service is not found", async () => {
     const supabase = (await import("../../../lib/supabase")).default;
 
-    (supabase.from as jest.Mock).mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { message: "not found" },
+    (supabase.from as jest.Mock).mockImplementation((table: string) => {
+      if (table === "vendors") {
+        return {
+          update: mockUpdate,
+        };
+      }
+
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: "not found" },
+            }),
           }),
         }),
-      }),
+      };
     });
 
     const response = await POST(
