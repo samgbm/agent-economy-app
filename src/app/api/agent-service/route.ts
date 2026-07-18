@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const l402Result = await requireL402(5, "Agent Service API", request);
+  const l402Result = await requireL402(3, "Agent Service API", request);
 
   if (l402Result instanceof NextResponse) {
     return l402Result;
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await supabase.from("transactions").insert({
-    amount_sats: 5,
+    amount_sats: 3,
     memo: "Agent Service API",
     preimage: l402Result,
   });

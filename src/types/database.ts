@@ -4,6 +4,7 @@ export interface Vendor {
   description: string;
   reputation_score: number;
   staked_sats: number;
+  lightning_address?: string;
   created_at: string;
 }
 
