@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ServiceCard } from "@/components/ServiceCard";
+import { ServiceModal } from "@/components/ServiceModal";
 import supabase from "@/lib/supabaseClient";
 import type { ServiceWithVendor } from "@/types/database";
 
@@ -20,6 +21,8 @@ interface MarketplaceGridProps {
 
 export function MarketplaceGrid({ filters = {} }: MarketplaceGridProps) {
   const [services, setServices] = useState<ServiceWithVendor[]>([]);
+  const [selectedService, setSelectedService] =
+    useState<ServiceWithVendor | null>(null);
 
   useEffect(() => {
     async function loadServices() {
@@ -66,17 +69,34 @@ export function MarketplaceGrid({ filters = {} }: MarketplaceGridProps) {
 
   if (services.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-secondary/30 px-6 py-16 text-center text-sm text-accent">
-        No services match your criteria
-      </div>
+      <>
+        <div className="rounded-lg border border-border bg-secondary/30 px-6 py-16 text-center text-sm text-accent">
+          No services match your criteria
+        </div>
+        <ServiceModal
+          service={selectedService}
+          onClose={() => setSelectedService(null)}
+        />
+      </>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {services.map((service) => (
-        <ServiceCard key={service.id} service={service} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {services.map((service) => (
+          <ServiceCard
+            key={service.id}
+            service={service}
+            onClick={() => setSelectedService(service)}
+          />
+        ))}
+      </div>
+
+      <ServiceModal
+        service={selectedService}
+        onClose={() => setSelectedService(null)}
+      />
+    </>
   );
 }

@@ -5,11 +5,23 @@ import type { ServiceWithVendor } from "@/types/database";
 
 interface ServiceCardProps {
   service: ServiceWithVendor;
+  onClick?: () => void;
 }
 
-export function ServiceCard({ service }: ServiceCardProps) {
+export function ServiceCard({ service, onClick }: ServiceCardProps) {
   return (
-    <article className="cursor-pointer rounded-lg border border-border bg-background p-5 shadow-sm transition-colors hover:bg-secondary/50">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="cursor-pointer rounded-lg border border-border bg-background p-5 shadow-sm transition-colors hover:bg-secondary/50"
+    >
       <span className="inline-block rounded-md border border-border bg-secondary/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
         {service.category}
       </span>
@@ -37,6 +49,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
           {service.uptime_percentage}% uptime
         </div>
       </footer>
-    </article>
+    </div>
   );
 }
