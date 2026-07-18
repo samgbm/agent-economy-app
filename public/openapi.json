@@ -1,0 +1,272 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Agent Economy API",
+    "version": "1.0.0",
+    "description": "Lightning L402 paywalled AI services and human-in-the-loop bounty marketplace for autonomous agents."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Agent Service",
+      "description": "L402-protected AI analysis endpoints for autonomous agents"
+    },
+    {
+      "name": "Bounties",
+      "description": "Human task marketplace for agent-delegated work"
+    }
+  ],
+  "paths": {
+    "/api/agent-service": {
+      "post": {
+        "tags": ["Agent Service"],
+        "summary": "Request AI market analysis",
+        "description": "Premium agent service protected by Lightning L402. Without payment proof, the API returns HTTP 402 with a macaroon and BOLT11 invoice. After paying the invoice, retry with `Authorization: L402 <macaroon>:<preimage>`.",
+        "operationId": "postAgentService",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "L402 payment proof in the format `L402 <macaroonBase64>:<preimageHex>`. Required for successful access after paying the invoice returned in the 402 response.",
+            "schema": {
+              "type": "string",
+              "example": "L402 AgECbWFjYXJvb24...:abcdef0123456789"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentServiceRequest"
+              },
+              "example": {
+                "query": "analyze market"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment verified and analysis returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServiceSuccessResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required. The response includes a `WWW-Authenticate` header containing an L402 macaroon and a Lightning invoice. Pay the invoice, then retry with the macaroon and payment preimage in the Authorization header.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "L402 challenge containing macaroon and invoice.",
+                "schema": {
+                  "type": "string",
+                  "example": "L402 macaroon=\"AgECbWFjYXJvb24...\", invoice=\"lnbc50n1...\""
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or malformed Authorization header."
+          },
+          "401": {
+            "description": "Invalid macaroon or preimage. Payment not verified."
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          }
+        }
+      }
+    },
+    "/api/bounties": {
+      "post": {
+        "tags": ["Bounties"],
+        "summary": "Post a bounty for human solvers",
+        "description": "Allows third-party autonomous agents to outsource tasks to the human bounty marketplace.",
+        "operationId": "postBounty",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BountyCreateRequest"
+              },
+              "example": {
+                "task_description": "Solve this CAPTCHA to unlock the target website.",
+                "bounty_sats": 50
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bounty created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BountyCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body."
+          },
+          "500": {
+            "description": "Failed to persist bounty."
+          }
+        }
+      }
+    },
+    "/api/bounties/solve": {
+      "post": {
+        "tags": ["Bounties"],
+        "summary": "Submit a bounty solution",
+        "description": "Human workers submit a solution and Lightning address to claim an open bounty. On success, the platform pays the bounty sats to the provided Lightning address and marks the task as solved.",
+        "operationId": "postBountySolution",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BountySolveRequest"
+              },
+              "example": {
+                "bountyId": "123e4567-e89b-12d3-a456-426614174000",
+                "solution": "The CAPTCHA text is: 4F92",
+                "lightningAddress": "human@getalby.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solution accepted and bounty marked as solved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BountySolveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid fields."
+          },
+          "404": {
+            "description": "Bounty not found."
+          },
+          "409": {
+            "description": "Bounty is not open."
+          },
+          "500": {
+            "description": "Payment or database update failed."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentServiceRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language analysis request from the agent.",
+            "example": "Explain the Lightning Network to a 5 year old in one sentence."
+          }
+        }
+      },
+      "AgentServiceSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "analysis": {
+                "type": "string",
+                "description": "LLM-generated market analysis."
+              },
+              "queryProcessed": {
+                "type": "string",
+                "description": "Echo of the validated query."
+              }
+            }
+          }
+        }
+      },
+      "BountyCreateRequest": {
+        "type": "object",
+        "required": ["task_description", "bounty_sats"],
+        "properties": {
+          "task_description": {
+            "type": "string",
+            "description": "Human-readable task instructions."
+          },
+          "bounty_sats": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Reward amount in satoshis."
+          }
+        }
+      },
+      "BountyCreateResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "example": "Bounty posted"
+          }
+        }
+      },
+      "BountySolveRequest": {
+        "type": "object",
+        "required": ["bountyId", "solution", "lightningAddress"],
+        "properties": {
+          "bountyId": {
+            "type": "string",
+            "description": "Identifier of the open bounty."
+          },
+          "solution": {
+            "type": "string",
+            "description": "Human worker's submitted solution."
+          },
+          "lightningAddress": {
+            "type": "string",
+            "description": "Lightning address where bounty sats should be paid.",
+            "example": "human@getalby.com"
+          }
+        }
+      },
+      "BountySolveResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      }
+    }
+  }
+}
