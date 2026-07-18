@@ -9,6 +9,10 @@ jest.mock("../components/ThemeSwitcher", () => ({
   ThemeSwitcher: () => <div data-testid="theme-switcher" />,
 }));
 
+jest.mock("../components/SidebarFilter", () => ({
+  SidebarFilter: () => <div data-testid="sidebar-filter" />,
+}));
+
 jest.mock("../components/RevenueTracker", () => ({
   RevenueTracker: () => <div data-testid="revenue-tracker" />,
 }));
@@ -22,7 +26,7 @@ jest.mock("../components/TransactionFeed", () => ({
 }));
 
 describe("Home page", () => {
-  it("renders the dashboard hero and home overview by default", () => {
+  it("renders the dashboard hero and marketplace home by default", () => {
     render(<Home />);
 
     expect(screen.getByRole("main")).toBeInTheDocument();
@@ -33,11 +37,9 @@ describe("Home page", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", {
-        level: 2,
-        name: /welcome to the agent economy/i,
-      }),
+      screen.getByText(/marketplace services loading/i),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-filter")).toBeInTheDocument();
     expect(screen.getByTestId("revenue-tracker")).toBeInTheDocument();
     expect(screen.getByTestId("demo-toggle")).toBeInTheDocument();
     expect(screen.getByTestId("theme-switcher")).toBeInTheDocument();

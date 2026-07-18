@@ -7,6 +7,7 @@
   --primary: #171717;
   --secondary: #f4f4f5;
   --accent: #52525b;
+  --border: #e4e4e7;
 }
 
 [data-theme="dark"] {
@@ -15,6 +16,7 @@
   --primary: #fafafa;
   --secondary: #27272a;
   --accent: #a1a1aa;
+  --border: #3f3f46;
 }
 
 /* Agora — Solana greens & deep purples (agora-web.fly.dev) */
@@ -24,6 +26,7 @@
   --primary: #14f195;
   --secondary: #2d1b4e;
   --accent: #9945ff;
+  --border: #3d2a66;
 }
 
 /* Colosseum — arena crimson, sand & gold (colosseum.com) */
@@ -33,6 +36,7 @@
   --primary: #9b1c2c;
   --secondary: #2c2a26;
   --accent: #f5bc22;
+  --border: #3a3330;
 }
 
 /* Indies — cyberpunk neon pink & dark grays (hack.indies.la) */
@@ -42,6 +46,7 @@
   --primary: #ff2d95;
   --secondary: #1a1210;
   --accent: #f5a623;
+  --border: #3a2418;
 }
 
 /* Dev3pack — deep ocean blues & bright cyan (hack.dev3pack.xyz) */
@@ -51,6 +56,35 @@
   --primary: #00d4ff;
   --secondary: #0f2847;
   --accent: #38bdf8;
+  --border: #1a3a5c;
+}
+
+/* AI Scientist — dark navy + gold/cyan marketplace aesthetic */
+html[data-theme="ai-scientist"] {
+  --bg: #060912;
+  --surface: #0d1524e6;
+  --border: #c8921a2e;
+  --gold: #c8921a;
+  --gold-dim: #c8921a14;
+  --cyan: #22d3ee;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #374151;
+  --text-faint: #1f2937;
+
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --primary: var(--gold);
+  --secondary: var(--surface);
+  --accent: var(--text-secondary);
+}
+
+html[data-theme="ai-scientist"] body,
+html[data-theme="ai-scientist"] button,
+html[data-theme="ai-scientist"] input,
+html[data-theme="ai-scientist"] select,
+html[data-theme="ai-scientist"] textarea {
+  font-family: var(--font-geist-sans), "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 @theme inline {
@@ -59,6 +93,7 @@
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

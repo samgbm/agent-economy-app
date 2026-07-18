@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BountyBoard } from "@/components/BountyBoard";
 import { DemoToggle } from "@/components/DemoToggle";
 import { RevenueTracker } from "@/components/RevenueTracker";
+import { SidebarFilter } from "@/components/SidebarFilter";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { TransactionFeed } from "@/components/TransactionFeed";
 
@@ -21,7 +22,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-16 sm:px-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-6 py-16 sm:px-8">
         <section className="relative overflow-hidden rounded-3xl border border-secondary bg-secondary/30 p-8 sm:p-10">
           <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
           <div className="absolute -bottom-10 left-10 h-32 w-32 rounded-full bg-accent/10 blur-3xl" />
@@ -87,17 +88,21 @@ export default function Home() {
 
         {activeTab === "home" ? (
           <div className="flex flex-col gap-8">
-            <section className="rounded-2xl border border-secondary bg-secondary/20 p-6 sm:p-8">
-              <h2 className="text-2xl font-semibold text-foreground">
-                Welcome to the Agent Economy
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-accent sm:text-base">
-                This dashboard tracks Lightning micropayments from autonomous
-                agents, live API revenue, and human-in-the-loop bounty tasks.
-                Use the tabs above to explore transactions or solve open bounties.
-              </p>
-            </section>
             <RevenueTracker />
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+              <div className="md:col-span-1">
+                <SidebarFilter />
+              </div>
+
+              <div className="md:col-span-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="col-span-full rounded-2xl border border-border bg-secondary/30 px-6 py-16 text-center text-sm text-accent">
+                    Marketplace Services Loading...
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
 

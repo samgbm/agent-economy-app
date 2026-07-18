@@ -10,6 +10,7 @@ const themes = [
   "colosseum",
   "indies",
   "dev3pack",
+  "ai-scientist",
 ] as const;
 
 export type AppTheme = (typeof themes)[number];

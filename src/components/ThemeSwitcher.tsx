@@ -12,6 +12,7 @@ const themes: { value: AppTheme; label: string }[] = [
   { value: "colosseum", label: "Colosseum" },
   { value: "indies", label: "Indies" },
   { value: "dev3pack", label: "Dev3pack" },
+  { value: "ai-scientist", label: "AI Scientist" },
 ];
 
 export function ThemeSwitcher() {
